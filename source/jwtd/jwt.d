@@ -124,7 +124,7 @@ EC_KEY* getESKeypair(uint curve_type, string key) {
 	pktmp = PEM_read_bio_PrivateKey(bpo, null, null, null);
 	if(pktmp is null) {
 		EC_GROUP_free(curve);
-		EC_POINT_free(pub);
+		BIO_free(bpo);
 		
 		throw new Exception("Can't load the evp_pkey.");
 	}
@@ -137,15 +137,11 @@ EC_KEY* getESKeypair(uint curve_type, string key) {
 	
 	if(eckey is null) {
 		EC_GROUP_free(curve);
-		EC_POINT_free(pub);
-		EVP_PKEY_free(pktmp);
 		
 		throw new Exception("Can't convert evp_pkey to EC_KEY.");
 	}
 	if(1 != EC_KEY_set_group(eckey, curve)) {
 		EC_GROUP_free(curve);
-		EC_POINT_free(pub);
-		EVP_PKEY_free(pktmp);
 		
 		throw new Exception("Can't associate group with the key.");
 	}
@@ -153,8 +149,6 @@ EC_KEY* getESKeypair(uint curve_type, string key) {
 	const BIGNUM *prv = EC_KEY_get0_private_key(eckey);
 	if(null == prv) {
 		EC_GROUP_free(curve);
-		EC_POINT_free(pub);
-		EVP_PKEY_free(pktmp);
 		
 		throw new Exception("Can't get private ke.y");
 	}
@@ -164,20 +158,21 @@ EC_KEY* getESKeypair(uint curve_type, string key) {
 	if (1 != EC_POINT_mul(curve, pub, prv, null, null, null)) {
 		EC_GROUP_free(curve);
 		EC_POINT_free(pub);
-		EVP_PKEY_free(pktmp);
+		
 		throw new Exception("Can't calculate public key.");
 	}
 		
 	if(1 != EC_KEY_set_public_key(eckey, pub)) {
 		EC_GROUP_free(curve);
 		EC_POINT_free(pub);
-		EVP_PKEY_free(pktmp);
 		
 		throw new Exception("Can't set public key.");
 	}
 	
+	EC_GROUP_free(curve);
+	EC_POINT_free(pub);
+	
 	return eckey;
-
 }
 
 string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
@@ -212,8 +207,11 @@ string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 	void sign_es(uint curve_type, ubyte* hash, int hashLen) {
 		EC_KEY* eckey = getESKeypair(curve_type, key);
 		ECDSA_SIG* sig = ECDSA_do_sign(hash, hashLen, eckey);
-		if(sig is null)
+		if(sig is null) {
+			EC_KEY_free(eckey);
+			
 			throw new Exception("Digest sign failed.");
+		}
 			
 		sign = new ubyte[ECDSA_size(eckey)];
 		ubyte* c = sign.ptr;
