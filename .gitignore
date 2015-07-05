@@ -3,5 +3,5 @@
 .project
 .settings
 keys/*
-./libjwtd.a
-./jwtd
+/libjwtd.a
+/jwtd
