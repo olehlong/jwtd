@@ -1,0 +1,24 @@
+{
+	"name" : "jwtd",
+	"description" : "D implementation of JSON Web Token.",
+	"license": "MIT",
+	"authors": [
+		"Oleh Havrys",
+		"Sergey Buth"
+	],
+	"dependencies" : {
+		"openssl": "~>1.1.4+1.0.1g"
+	},
+	
+	"configurations": [
+    	{
+      		"name": "library",
+      		"targetType": "library"
+    	},
+    	{
+      		"name": "unittest",
+      		"mainSourceFile": "source/app.d",
+      		"targetType": "executable"
+    	}
+  	]
+}

@@ -1,0 +1,7 @@
+.dub
+.buildpath
+.project
+.settings
+keys/*
+./libjwtd.a
+./jwtd
