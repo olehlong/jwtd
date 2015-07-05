@@ -125,7 +125,7 @@ EC_KEY* getESKeypair(uint curve_type, string key) {
 	if(pktmp is null) {
 		EC_GROUP_free(curve);
 		BIO_free(bpo);
-		
+
 		throw new Exception("Can't load the evp_pkey.");
 	}
 
@@ -158,7 +158,7 @@ EC_KEY* getESKeypair(uint curve_type, string key) {
 	if (1 != EC_POINT_mul(curve, pub, prv, null, null, null)) {
 		EC_GROUP_free(curve);
 		EC_POINT_free(pub);
-		
+
 		throw new Exception("Can't calculate public key.");
 	}
 		
@@ -212,7 +212,7 @@ string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 			
 			throw new Exception("Digest sign failed.");
 		}
-			
+		
 		sign = new ubyte[ECDSA_size(eckey)];
 		ubyte* c = sign.ptr;
 		if(!i2d_ECDSA_SIG(sig, &c)) {
