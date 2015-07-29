@@ -3,18 +3,21 @@ module jwtd.jwt;
 import std.json;
 import std.stdio;
 import std.base64;
-
-import deimos.openssl.ssl;
-import deimos.openssl.pem;
-import deimos.openssl.rsa;
-import deimos.openssl.hmac;
-import deimos.openssl.err;
 import std.algorithm;
-
 import std.array : split;
 
+version (UseBotan) {
+	import jwtd.jwt_botan;
+}
+else {
+	import deimos.openssl.ssl;
+	import deimos.openssl.pem;
+	import deimos.openssl.rsa;
+	import deimos.openssl.hmac;
+	import deimos.openssl.err;
+}
 
-enum JWTAlgorithm {
+enum JWTAlgorithm : string {
 	NONE  = "none",
 	HS256 = "HS256",
 	HS384 = "HS384",
@@ -106,6 +109,8 @@ JSONValue decode(string token, string key) {
 	return payload;
 }
 
+version (UseBotan) { }
+else {
 EC_KEY* getESKeypair(uint curve_type, string key) {
 	EC_GROUP* curve;
 	EVP_PKEY* pktmp;
@@ -177,10 +182,10 @@ EC_KEY* getESKeypair(uint curve_type, string key) {
 
 string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 	ubyte[] sign;
-	
+
 	void sign_hs(const(EVP_MD)* evp, uint signLen) {
 		sign = new ubyte[signLen];
-		
+
 		HMAC_CTX ctx;
 		HMAC_CTX_init(&ctx);
 		HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null);
@@ -188,7 +193,7 @@ string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 		HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen);
 		HMAC_CTX_cleanup(&ctx);
 	}
-	
+
 	void sign_rs(ubyte* hash, int type, uint len, uint signLen) {
 		sign = new ubyte[len];
 		
@@ -221,7 +226,7 @@ string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 			throw new Exception("Convert sign to DER format failed.");
 		}
 	}
-			
+
 	switch(algo) {
 		case JWTAlgorithm.NONE: {
 			break;
@@ -304,7 +309,7 @@ bool verifySignature(string signature, string signing_input, string key, JWTAlgo
 		ubyte* c = cast(ubyte*)signature.ptr;
 		ECDSA_SIG* sig = null;
 		
-		sig = d2i_ECDSA_SIG(&sig, cast(const (ubyte)**)&c, cast(long) key.length);
+		sig = d2i_ECDSA_SIG(&sig, cast(const (ubyte)**)&c, cast(int) key.length);
 		int ret =  ECDSA_do_verify(hash, hashLen, sig, eckey);
 		
 		ECDSA_SIG_free(sig);
@@ -353,10 +358,11 @@ bool verifySignature(string signature, string signing_input, string key, JWTAlgo
 			SHA512(cast(const(ubyte)*)signing_input.ptr, signing_input.length, hash.ptr);
 			return verify_es(NID_secp521r1, hash.ptr, SHA512_DIGEST_LENGTH );
 		}
-			
+
 		default:
 			throw new VerifyException("Wrong algorithm.");
 	}
+}
 }
 
 bool verify(string token, string key) {
@@ -412,7 +418,7 @@ string urlsafeB64Decode(string inp) {
 }
 
 unittest {
-	
+
 	string private256 = q"EOS
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAq+e/dME9Mrklp8hvhzqoAq+CWCyOHQrsoMhyuqieTr3QfURt
@@ -462,7 +468,6 @@ oUQDQgAEMuSnsWbiIPyfFAIAvlbliPOUnQlibb67yE6JUqXVaevb8ZorK2HfxfFg
 9pGVhg3SGuBCbHcJ84WKOX3GSMEwcA==
 -----END EC PRIVATE KEY-----
 EOS"; 
-
 	string hs_secret = "secret";
 	
 	// none
@@ -482,7 +487,9 @@ EOS";
 	string hs512Token = encode(["language": "D"], hs_secret, JWTAlgorithm.HS512);
 	assert(hs512Token == "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.tDRXngYs15t6Q-9AortMxXNfvTgVjaQGD9VTlwL3JD6Xxab8ass2ekCoom8uOiRdpZ772ajLQD42RXMuALct1Q");
 	assert(verify(hs512Token, hs_secret));
-	
+
+	version (UseBotan) { /*Not implemented yet */ }
+	else {
 	// rs256
 	
 	string rs256Token = encode(["language": "D"], private256, JWTAlgorithm.RS256);
@@ -493,4 +500,5 @@ EOS";
 	
 	string es256Token = encode(["language": "D"], es256_key, JWTAlgorithm.ES256);
 	assert(verify(es256Token, es256_key));
+	}
 }
