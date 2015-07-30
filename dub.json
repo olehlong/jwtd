@@ -6,18 +6,16 @@
 		"Oleh Havrys",
 		"Sergey Buth"
 	],
-	
 	"configurations": [
-    	{
-
-      		"name": "openssl",
-      		"targetType": "library",
-			"dependencies" : {
-				"openssl": "~>1.1.4+1.0.1g"
-			},
-			"versions": ["UseOpenSSL"]
-    	},
-	    {
+		{
+			"name": "openssl",
+			"targetType": "library",
+				"dependencies" : {
+					"openssl": "~>1.1.4+1.0.1g"
+				},
+				"versions": ["UseOpenSSL"]
+		},
+		{
 			"name": "botan",
 			"targetType": "library",
 			"dependencies" : {
@@ -26,22 +24,22 @@
 			"versions": ["UseBotan"]
 		},
 		{
-      		"name": "unittest-openssl",
-      		"mainSourceFile": "source/app.d",
-      		"targetType": "executable",
+		"name": "unittest-openssl",
+		"mainSourceFile": "source/app.d",
+		"targetType": "executable",
 			"dependencies" : {
 				"openssl": "~>1.1.4+1.0.1g"
 			},
 			"versions": ["UseOpenSSL"]
-    	},
-    	{
-      		"name": "unittest-botan",
-      		"mainSourceFile": "source/app.d",
-      		"targetType": "executable",
-			"dependencies" : {
-				"botan": "~>1.12.0"
-			},
-			"versions": ["UseBotan"]
-    	}
-  	]
+		},
+		{
+			"name": "unittest-botan",
+			"mainSourceFile": "source/app.d",
+			"targetType": "executable",
+				"dependencies" : {
+					"botan": "~>1.12.0"
+				},
+				"versions": ["UseBotan"]
+		}
+	]
 }
