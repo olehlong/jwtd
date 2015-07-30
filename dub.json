@@ -9,6 +9,7 @@
 	
 	"configurations": [
     	{
+
       		"name": "openssl",
       		"targetType": "library",
 			"dependencies" : {

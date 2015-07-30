@@ -5,10 +5,9 @@ import std.base64;
 import std.algorithm;
 import std.array : split;
 
-version (UseBotan) {
+version(UseBotan) {
 	public import jwtd.jwt_botan;
-}
-else {
+} else {
 	public import jwtd.jwt_openssl;
 }
 
@@ -226,6 +225,7 @@ EOS";
 	assert(hs512Token == "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.tDRXngYs15t6Q-9AortMxXNfvTgVjaQGD9VTlwL3JD6Xxab8ass2ekCoom8uOiRdpZ772ajLQD42RXMuALct1Q");
 	assert(verify(hs512Token, hs_secret));
 
+
 	version (UseOpenSSL) {
 		
 		// rs256
@@ -240,5 +240,4 @@ EOS";
 		assert(verify(es256Token, es256_key));
 		
 	}
-	
 }

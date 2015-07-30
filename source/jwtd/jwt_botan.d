@@ -10,7 +10,6 @@ version (UseBotan) {
 	import botan.hash.sha2_64 : SHA384, SHA512;
 	import memutils.unique;
 
-	
 	string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 		ubyte[] sign;
 
