@@ -21,6 +21,10 @@ D implementation of [JSON Web Token](http://jwt.io/).
 - HS384
 - HS512
 
+## Installation
+
+See [DUB page](http://code.dlang.org/packages/jwtd).
+
 ## Building
 
 ### Using OpenSSL
