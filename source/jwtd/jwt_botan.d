@@ -3,7 +3,7 @@
 import jwtd.jwt;
 
 version (UseBotan) {
-	
+
 	import botan.mac.hmac;
 	import botan.hash.hash;
 	import botan.hash.sha2_32 : SHA256;
@@ -15,12 +15,12 @@ version (UseBotan) {
 
 		void sign_hs(HashFunction hashFun) {
 			Unique!HMAC hmac = new HMAC(hashFun);
-			
+
 			hmac.setKey(cast(const(ubyte)*)key.ptr, key.length);
 			hmac.update(msg);
 			sign = hmac.finished()[].dup;
 		}
-			
+
 		switch(algo) {
 			case JWTAlgorithm.NONE: {
 				break;
@@ -49,12 +49,12 @@ version (UseBotan) {
 			default:
 				throw new SignException("Wrong algorithm.");
 		}
-		
+
 		return cast(string)sign;
 	}
 
 	bool verifySignature(string signature, string signing_input, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
-		
+
 		switch(algo) {
 			case JWTAlgorithm.NONE: {
 				return true;

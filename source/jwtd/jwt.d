@@ -39,7 +39,7 @@ class VerifyException : Exception {
 string encode(string[string] payload, string key, JWTAlgorithm algo = JWTAlgorithm.HS256, string[string] header_fields = null) {
 	JSONValue jsonHeader = header_fields;
 	JSONValue jsonPayload = payload;
-	
+
 	return encode(jsonPayload, key, algo, jsonHeader);
 }
 /**
@@ -50,13 +50,13 @@ string encode(ref JSONValue payload, string key, JWTAlgorithm algo = JWTAlgorith
 		header_fields = (JSONValue[string]).init;
 	header_fields.object["alg"] = cast(string)algo;
 	header_fields.object["typ"] = "JWT";
-	
+
 	string encodedHeader = urlsafeB64Encode(header_fields.toString());
 	string encodedPayload = urlsafeB64Encode(payload.toString());
-	
+
 	string signingInput = encodedHeader ~ "." ~ encodedPayload;
 	string signature = urlsafeB64Encode(sign(signingInput, key, algo));
-	
+
 	return signingInput ~ "." ~ signature;
 }
 
@@ -64,19 +64,19 @@ JSONValue decode(string token, string key) {
 	import std.algorithm : count;
 	import std.conv : to;
 	import std.uni : toUpper;
-	
+
 	if(count(token, ".") != 2)
 		throw new VerifyException("Token is incorrect.");
-	
+
 	string[] tokenParts = split(token, ".");
-	
+
 	JSONValue header;
 	try {
 		header = parseJSON(urlsafeB64Decode(tokenParts[0]));
 	} catch(Exception e) {
 		throw new VerifyException("Header is incorrect.");
 	}
-	
+
 	JWTAlgorithm alg;
 	try {
 		// toUpper for none
@@ -84,22 +84,22 @@ JSONValue decode(string token, string key) {
 	} catch(Exception e) {
 		throw new VerifyException("Algorithm is incorrect.");
 	}
-	
+
 	string typ = header["typ"].str();
 	if(typ && typ != "JWT")
 		throw new VerifyException("Type is incorrect.");
-	
+
 	if(!verifySignature(urlsafeB64Decode(tokenParts[2]), tokenParts[0]~"."~tokenParts[1], key, alg))
 		throw new VerifyException("Signature is incorrect.");
-	
+
 	JSONValue payload;
-	
+
 	try {
 		payload = parseJSON(urlsafeB64Decode(tokenParts[1]));
 	} catch(JSONException e) {
 		throw new VerifyException("Payload JSON is incorrect.");
 	}
-	
+
 	return payload;
 }
 
@@ -107,15 +107,15 @@ bool verify(string token, string key) {
 	import std.algorithm : count;
 	import std.conv : to;
 	import std.uni : toUpper;
-	
+
 	if(count(token, ".") != 2)
 		throw new VerifyException("Token is incorrect.");
-	
+
 	string[] tokenParts = split(token, ".");
-	
+
 	string decHeader = urlsafeB64Decode(tokenParts[0]);
 	JSONValue header = parseJSON(decHeader);
-	
+
 	JWTAlgorithm alg;
 	try {
 		// toUpper for none
@@ -123,11 +123,11 @@ bool verify(string token, string key) {
 	} catch(Exception e) {
 		throw new VerifyException("Algorithm is incorrect.");
 	}
-	
+
 	string typ = header["typ"].str();
 	if(typ && typ != "JWT")
 		throw new VerifyException("Type is incorrect.");
-	
+
 	return verifySignature(urlsafeB64Decode(tokenParts[2]), tokenParts[0]~"."~tokenParts[1], key, alg);
 }
 
@@ -136,7 +136,7 @@ bool verify(string token, string key) {
  */
 string urlsafeB64Encode(string inp) {
 	import std.string : removechars;
-	
+
 	char[] enc = Base64URL.encode(cast(ubyte[])inp);
 	return removechars(cast(string)(enc), "=");
 }
@@ -146,7 +146,7 @@ string urlsafeB64Encode(string inp) {
  */
 string urlsafeB64Decode(string inp) {
 	import std.array : replicate, join;
-	
+
 	int remainder = inp.length % 4;
 	if(remainder > 0) {
 		int padlen = 4 - remainder;
@@ -206,38 +206,38 @@ oUQDQgAEMuSnsWbiIPyfFAIAvlbliPOUnQlibb67yE6JUqXVaevb8ZorK2HfxfFg
 -----END EC PRIVATE KEY-----
 EOS"; 
 	string hs_secret = "secret";
-	
+
 	// none
-	
+
 	string noneToken = encode(["language": "D"], "", JWTAlgorithm.NONE);
 	assert(noneToken == "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJsYW5ndWFnZSI6IkQifQ.");
 	assert(verify(noneToken, ""));
-	
+
 	// hs256
-	
+
 	string hs256Token = encode(["language": "D"], hs_secret, JWTAlgorithm.HS256);
 	assert(hs256Token == "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.utQLevAUK97y-e6B3-EnSofvTNAfSXNuSbu4moAh-hY");
 	assert(verify(hs256Token, hs_secret));
-	
+
 	// hs512
-	
+
 	string hs512Token = encode(["language": "D"], hs_secret, JWTAlgorithm.HS512);
 	assert(hs512Token == "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.tDRXngYs15t6Q-9AortMxXNfvTgVjaQGD9VTlwL3JD6Xxab8ass2ekCoom8uOiRdpZ772ajLQD42RXMuALct1Q");
 	assert(verify(hs512Token, hs_secret));
 
 
 	version (UseOpenSSL) {
-		
+
 		// rs256
-	
+
 		string rs256Token = encode(["language": "D"], private256, JWTAlgorithm.RS256);
 		assert(rs256Token == "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.BYpRNUNsho1Yquq7Uolp31K2Ng90h0hRlMV6J6d9WSSIYf7s2MBX2xgDlBuHtB-Yb9dkbkfdxqjYCQdWejiMc_II6dn72ZSBwBCyWdPPRNbTRA2DNlsoKFBS5WMp7iYordfD9KE0LowK61n_Z7AHNAiOop5Ka1xTKH8cqEo8s3ItgoxZt8mzAfhIYNogGown6sYytqg1I72UHsEX9KAuP7sCxCbxZ9cSVg2f4afEuwwo08AdG3hW_LXhT7VD-EweDmvF2JLAyf1_rW66PMgiZZCLQ6kf2hQRsa56xRDmo5qC98wDseBHx9f3PsTsracTKojwQUdezDmbHv90vCt-Iw");
 		assert(verify(rs256Token, public256));
-	
+
 		// es256
-	
+
 		string es256Token = encode(["language": "D"], es256_key, JWTAlgorithm.ES256);
 		assert(verify(es256Token, es256_key));
-		
+
 	}
 }
