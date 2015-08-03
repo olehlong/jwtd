@@ -5,6 +5,8 @@ void main() {
 		import std.stdio;
 
 		version(UseBotan) {
+			import botan.libstate.init;
+			LibraryInitializer init;
 			writeln("Encryption library: Botan.");
 		}
 
