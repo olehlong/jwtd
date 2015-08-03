@@ -156,7 +156,41 @@ string urlsafeB64Decode(string inp) {
 }
 
 unittest {
-	string private256 = q"EOS
+
+	version(UseBotan) {
+		string private256 = q"EOS
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCr5790wT0yuSWn
+yG+HOqgCr4JYLI4dCuygyHK6qJ5OvdB9RG1Rj531VXQ2F+BJGtvOxgah05X6y6jm
+Ov/OL/NMN8S8MWMhXPYd9/NPOuJD+ricXalmp9pL5y2qrrAhrkTTlptbiYrq/PVe
+e6qLXC7wp9RmMQDlTxlrkykzgTo/rbjMzP43wL2TovI2ATc+v15T63uhtk1mdAIs
+EXiDljFhD6alW8+tHlZmF9EJERPfCE8LSRHHLt/V0HGnGr3Pq519Q/lL9TJSqWJ4
+x4Lpjz715qDsN//8aEdvwyVRSACVNeceE4t/WVQSqVZZwfElz2y1uAyw8I6W+S6t
+AJXfoc5JAgMBAAECggEAW2TjwlQ2kDAlV/XVbcT+rCbZmr1ddQ1ozvajIKAjQmPi
+Y6cso69CYLvlBBlfkh5ofJ+FySWv2F3M11LIy7tsk7oWq6NqO8OryjUYM6hvwYqb
++e5F8SEOi0pGWjdzxwRa7U9mG52dsN96KJiBDISfJC1mXEpzWnbaYfokbpCnAlEf
+mJrFoJwBj7PFcN/U0lyou2UJB8/JwtPx89Y4VVSu1SdQbwMSbxXyvWgeHpSwJCyt
+BsHbSpYl2JDGv1bauLDp478Scr2+xdepEbOtfK5oTbNl7OBRG2GBViI+l746sPJ5
+RZ2mfVSiHQ+sXM+0tUSNikyZPlOkGRuEoFL/it7TnQKBgQDgmY7A5eD32R526zLl
+yCGwRcjd8399RoCPad8/euMlosSIw5Kb+Y3wIMZ2g4peaGTvDW6ne/YAwATIpsh2
+swBVz+b0aIo0+6I42Udlb/FAYGKX0xjzg2FZSzCDR+DvS7g6el/JiduucM+34Gko
+g7SflbpPMOziIWiBOVqTLkHvtwKBgQDD8D+NkEjHJhQmB7G3tqiH9Zjd3+AeYDKK
+aTSBrBCzMhAXjbjwcY+bdlMvwWhcAwI0UQC3Tew25siHJtLpsfP6CLY/+81QYavD
+dt1dbiB5ahpkbB8OYqDQH+rvI4fcyEnWhKGaEibI3VAY+nd9y11prHvwmcZOblpc
+gEBzV34x/wKBgEBurQ5XpEdWCTBSXwKefFOmYW6S+UMGI8GAvOPoLBvS6xDVEk0e
+tYJq1KSRLfPRfQs7TkBMBpHGhFjPx/iNd44mm3oIN4Xlnm8ynhHSoGI4hHBLxf+t
+9BJ6yIsQ5s2falWUX8BghR4xDNYSUfimd/3EJXOsdHiW3vUbcAmDHrVXAoGBAKtp
+IOACSnjWSige8Q0r4XHXnFz1/oX0WCKX+NQ8J/vsHwHL/O90GVLCh/GuPFLKWwJT
+ntG9fJlm+iSqBTdmc27Ycj+1VB8u4unDsdKLhiNRfDdAE0ctZ0vLsGZ2aePu4BGn
+xAwaNw3f9rNzYleNMnJA78hDbqWsiqaDmF6POxoXAoGAEsj9YmS8/kgoJITjNII6
+04wowxcMS/eUffQ7bPizLDYRPQQ0CKhAPC+vVz+wWzJSgHCcuYmHBjG6940Ethg1
++AsWwkm893VF6r6eLjt7byoqfaJEbsZm9y2mQi353PHIChq7CynEQSI+kaPP3V28
+FIb2otyo1D4EXhfhvIH2K1A=
+-----END PRIVATE KEY-----
+EOS";
+	}
+	else {
+		string private256 = q"EOS
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAq+e/dME9Mrklp8hvhzqoAq+CWCyOHQrsoMhyuqieTr3QfURt
 UY+d9VV0NhfgSRrbzsYGodOV+suo5jr/zi/zTDfEvDFjIVz2HffzTzriQ/q4nF2p
@@ -185,6 +219,7 @@ r1c/sFsyUoBwnLmJhwYxuveNBLYYNfgLFsJJvPd1Req+ni47e28qKn2iRG7GZvct
 pkIt+dzxyAoauwspxEEiPpGjz91dvBSG9qLcqNQ+BF4X4byB9itQ
 -----END RSA PRIVATE KEY-----
 EOS";
+	}
 
 	string public256 = q"EOS
 -----BEGIN PUBLIC KEY-----
@@ -225,19 +260,16 @@ EOS";
 	assert(hs512Token == "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.tDRXngYs15t6Q-9AortMxXNfvTgVjaQGD9VTlwL3JD6Xxab8ass2ekCoom8uOiRdpZ772ajLQD42RXMuALct1Q");
 	assert(verify(hs512Token, hs_secret));
 
+	// rs256
+
+	string rs256Token = encode(["language": "D"], private256, JWTAlgorithm.RS256);
+	assert(rs256Token == "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.BYpRNUNsho1Yquq7Uolp31K2Ng90h0hRlMV6J6d9WSSIYf7s2MBX2xgDlBuHtB-Yb9dkbkfdxqjYCQdWejiMc_II6dn72ZSBwBCyWdPPRNbTRA2DNlsoKFBS5WMp7iYordfD9KE0LowK61n_Z7AHNAiOop5Ka1xTKH8cqEo8s3ItgoxZt8mzAfhIYNogGown6sYytqg1I72UHsEX9KAuP7sCxCbxZ9cSVg2f4afEuwwo08AdG3hW_LXhT7VD-EweDmvF2JLAyf1_rW66PMgiZZCLQ6kf2hQRsa56xRDmo5qC98wDseBHx9f3PsTsracTKojwQUdezDmbHv90vCt-Iw");
+	assert(verify(rs256Token, public256));
 
 	version (UseOpenSSL) {
+	// es256
 
-		// rs256
-
-		string rs256Token = encode(["language": "D"], private256, JWTAlgorithm.RS256);
-		assert(rs256Token == "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.BYpRNUNsho1Yquq7Uolp31K2Ng90h0hRlMV6J6d9WSSIYf7s2MBX2xgDlBuHtB-Yb9dkbkfdxqjYCQdWejiMc_II6dn72ZSBwBCyWdPPRNbTRA2DNlsoKFBS5WMp7iYordfD9KE0LowK61n_Z7AHNAiOop5Ka1xTKH8cqEo8s3ItgoxZt8mzAfhIYNogGown6sYytqg1I72UHsEX9KAuP7sCxCbxZ9cSVg2f4afEuwwo08AdG3hW_LXhT7VD-EweDmvF2JLAyf1_rW66PMgiZZCLQ6kf2hQRsa56xRDmo5qC98wDseBHx9f3PsTsracTKojwQUdezDmbHv90vCt-Iw");
-		assert(verify(rs256Token, public256));
-
-		// es256
-
-		string es256Token = encode(["language": "D"], es256_key, JWTAlgorithm.ES256);
-		assert(verify(es256Token, es256_key));
-
+	string es256Token = encode(["language": "D"], es256_key, JWTAlgorithm.ES256);
+	assert(verify(es256Token, es256_key));
 	}
 }

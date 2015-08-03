@@ -20,6 +20,11 @@ D implementation of [JSON Web Token](http://jwt.io/).
 - HS256
 - HS384
 - HS512
+- RS256
+- RS384
+- RS512
+
+**NOTE** - Botan does not support private keys in PKCS#1 format so it needs to be supplied with PKCS#8
 
 ## Installation
 
