@@ -31,14 +31,6 @@ version (UseBotan) {
 			auto privKey = loadKey(cast(DataSource)DataSourceMemory(key), *rng);
 			auto signer = PKSigner(privKey, emsaName);
 			sign = signer.signMessage(cast(const(ubyte)*)msg.ptr, msg.length, *rng)[].dup;
-
-			debug
-			{
-				auto verifier = PKVerifier(privKey, emsaName);
-				assert(verifier.verifyMessage(
-						cast(const(ubyte)*)msg.ptr, msg.length,
-						cast(const(ubyte)*)sign.ptr, sign.length));
-			}
 		}
 
 		switch(algo) {
