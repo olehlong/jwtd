@@ -15,7 +15,7 @@ D implementation of [JSON Web Token](http://jwt.io/).
 - ES384
 - ES512
 	
-#### Botan
+#### [Botan](https://github.com/etcimon/botan)
 - NONE
 - HS256
 - HS384
@@ -23,8 +23,11 @@ D implementation of [JSON Web Token](http://jwt.io/).
 - RS256
 - RS384
 - RS512
+- ES256
+- ES384
+- ES512
 
-**NOTE** - Botan does not support private keys in PKCS#1 format so it needs to be supplied with PKCS#8
+**NOTE** - Botan supports private keys just in PKCS#8 format (for RS and ES signatures)
 
 ## Installation
 

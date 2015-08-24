@@ -233,13 +233,32 @@ SQIDAQAB
 -----END PUBLIC KEY-----
 EOS";
 
-string es256_key = q"EOS
+	version(UseBotan) {
+		string es256_key = q"EOS
+-----BEGIN PRIVATE KEY-----
+MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgHxxA+0sQXmE4myibmhVT
+l0ymANRHZBi4lNd22/F7NCWhRANCAAQy5KexZuIg/J8UAgC+VuWI85SdCWJtvrvI
+TolSpdVp69vxmisrYd/F8WD2kZWGDdIa4EJsdwnzhYo5fcZIwTBw
+-----END PRIVATE KEY-----
+EOS";
+	}
+	else {
+		string es256_key = q"EOS
 -----BEGIN EC PRIVATE KEY-----
 MHQCAQEEIB8cQPtLEF5hOJsom5oVU5dMpgDUR2QYuJTXdtvxezQloAcGBSuBBAAK
 oUQDQgAEMuSnsWbiIPyfFAIAvlbliPOUnQlibb67yE6JUqXVaevb8ZorK2HfxfFg
 9pGVhg3SGuBCbHcJ84WKOX3GSMEwcA==
 -----END EC PRIVATE KEY-----
-EOS"; 
+EOS";
+	}
+
+	string es256_pubkey = q"EOS
+-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEMuSnsWbiIPyfFAIAvlbliPOUnQlibb67
+yE6JUqXVaevb8ZorK2HfxfFg9pGVhg3SGuBCbHcJ84WKOX3GSMEwcA==
+-----END PUBLIC KEY-----
+EOS";
+
 	string hs_secret = "secret";
 
 	// none
@@ -266,10 +285,14 @@ EOS";
 	assert(rs256Token == "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.BYpRNUNsho1Yquq7Uolp31K2Ng90h0hRlMV6J6d9WSSIYf7s2MBX2xgDlBuHtB-Yb9dkbkfdxqjYCQdWejiMc_II6dn72ZSBwBCyWdPPRNbTRA2DNlsoKFBS5WMp7iYordfD9KE0LowK61n_Z7AHNAiOop5Ka1xTKH8cqEo8s3ItgoxZt8mzAfhIYNogGown6sYytqg1I72UHsEX9KAuP7sCxCbxZ9cSVg2f4afEuwwo08AdG3hW_LXhT7VD-EweDmvF2JLAyf1_rW66PMgiZZCLQ6kf2hQRsa56xRDmo5qC98wDseBHx9f3PsTsracTKojwQUdezDmbHv90vCt-Iw");
 	assert(verify(rs256Token, public256));
 
-	version (UseOpenSSL) {
 	// es256
 
 	string es256Token = encode(["language": "D"], es256_key, JWTAlgorithm.ES256);
-	assert(verify(es256Token, es256_key));
+
+	version(UseOpenSSL) {
+		assert(verify(es256Token, es256_key));
+	}
+	else {
+		assert(verify(es256Token, es256_pubkey));
 	}
 }
