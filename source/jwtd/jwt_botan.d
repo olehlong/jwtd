@@ -24,12 +24,21 @@ version (UseBotan) {
 
 		void sign_rs(string emsaName) {
 			import botan.filters.data_src;
-			import x509 = botan.pubkey.x509_key;
 			import botan.pubkey.algo.rsa;
 			
 			Unique!AutoSeededRNG rng = new AutoSeededRNG;
 			auto privKey = loadKey(cast(DataSource)DataSourceMemory(key), *rng);
 			auto signer = PKSigner(privKey, emsaName);
+			sign = signer.signMessage(cast(const(ubyte)*)msg.ptr, msg.length, *rng)[].dup;
+		}
+
+		void sign_es(string emsaName) {
+			import botan.filters.data_src;
+			import botan.pubkey.algo.ecdsa;
+
+			Unique!AutoSeededRNG rng = new AutoSeededRNG;
+			auto privKey = loadKey(cast(DataSource)DataSourceMemory(key), *rng);
+			auto signer = PKSigner(privKey, emsaName, DER_SEQUENCE);
 			sign = signer.signMessage(cast(const(ubyte)*)msg.ptr, msg.length, *rng)[].dup;
 		}
 
@@ -62,8 +71,14 @@ version (UseBotan) {
 				sign_rs("EMSA3(SHA-512)");
 				break;
 			case JWTAlgorithm.ES256:
+				sign_es("EMSA1(SHA-256)");
+				break;
 			case JWTAlgorithm.ES384:
+				sign_es("EMSA1(SHA-384)");
+				break;
 			case JWTAlgorithm.ES512:
+				sign_es("EMSA1(SHA-512)");
+				break;
 			default:
 				throw new SignException("Wrong algorithm.");
 		}
@@ -85,6 +100,18 @@ version (UseBotan) {
 				cast(const(ubyte)*)signature.ptr, signature.length);
 		}
 
+		bool verify_es(string emsaName) {
+			import x509 = botan.pubkey.x509_key;
+			import botan.pubkey.algo.ecdsa;
+			import botan.filters.data_src;
+
+			auto pubKey = x509.loadKey(cast(DataSource)DataSourceMemory(key));
+			auto verifier = PKVerifier(pubKey, emsaName, DER_SEQUENCE);
+			return verifier.verifyMessage(
+				cast(const(ubyte)*)signing_input.ptr, signing_input.length,
+				cast(const(ubyte)*)signature.ptr, signature.length);
+		}
+
 		switch(algo) {
 			case JWTAlgorithm.NONE:
 				return true;
@@ -99,8 +126,11 @@ version (UseBotan) {
 			case JWTAlgorithm.RS512:
 				return verify_rs("EMSA3(SHA-512)");
 			case JWTAlgorithm.ES256:
+				return verify_es("EMSA1(SHA-256)");
 			case JWTAlgorithm.ES384:
+				return verify_es("EMSA1(SHA-384)");
 			case JWTAlgorithm.ES512:
+				return verify_es("EMSA1(SHA-512)");
 			default:
 				throw new VerifyException("Wrong algorithm.");
 		}
