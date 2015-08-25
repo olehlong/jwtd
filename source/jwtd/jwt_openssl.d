@@ -78,6 +78,83 @@ version(UseOpenSSL) {
 
 		return eckey;
 	}
+	
+	EC_KEY* getESPrivateKey(uint curve_type, string key) {
+		EC_GROUP* curve;
+		EVP_PKEY* pktmp;
+		BIO* bpo;
+		
+		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
+			throw new Exception("Unsupported curve.");
+
+		bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
+		if(bpo is null) {
+			EC_GROUP_free(curve);
+			throw new Exception("Can't load the key.");
+		}
+
+		pktmp = PEM_read_bio_PrivateKey(bpo, null, null, null);
+		if(pktmp is null) {
+			EC_GROUP_free(curve);
+			BIO_free(bpo);
+
+			throw new Exception("Can't load the evp_pkey.");
+		}
+
+		BIO_free(bpo);
+
+		EC_KEY * eckey;
+	 	eckey = EVP_PKEY_get1_EC_KEY(pktmp);
+		EVP_PKEY_free(pktmp);
+		
+		if(eckey is null) {
+			EC_GROUP_free(curve);
+
+			throw new Exception("Can't convert evp_pkey to EC_KEY.");
+		}
+		
+		if(1 != EC_KEY_set_group(eckey, curve)) {
+			EC_GROUP_free(curve);
+
+			throw new Exception("Can't associate group with the key.");
+		}
+
+		EC_GROUP_free(curve);
+		
+		return eckey;
+	}
+	
+	EC_KEY* getESPublicKey(uint curve_type, string key) {
+		EC_GROUP* curve;
+		
+		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
+			throw new Exception("Unsupported curve.");
+
+		EC_KEY* eckey = EC_KEY_new();
+		
+		BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
+		if(bpo is null) {
+			EC_GROUP_free(curve);
+			throw new Exception("Can't load the key.");
+		}
+		
+		eckey = PEM_read_bio_EC_PUBKEY(bpo, null, null, null);
+		
+		if(1 != EC_KEY_set_group(eckey, curve)) {
+			BIO_free(bpo);
+			EC_GROUP_free(curve);
+
+			throw new Exception("Can't associate group with the key.");
+		}
+		
+		BIO_free(bpo);
+		EC_GROUP_free(curve);
+		
+		if(0 == EC_KEY_check_key(eckey))
+			throw new Exception("Public key is not valid.");
+		
+		return eckey;
+	}
 
 	string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 		ubyte[] sign;
@@ -109,7 +186,7 @@ version(UseOpenSSL) {
 		}
 
 		void sign_es(uint curve_type, ubyte* hash, int hashLen) {
-			EC_KEY* eckey = getESKeypair(curve_type, key);
+			EC_KEY* eckey = getESPrivateKey(curve_type, key);
 			ECDSA_SIG* sig = ECDSA_do_sign(hash, hashLen, eckey);
 			if(sig is null) {
 				EC_KEY_free(eckey);
@@ -204,7 +281,7 @@ version(UseOpenSSL) {
 		}
 
 		bool verify_es(uint curve_type, ubyte* hash, int hashLen ) {
-			EC_KEY* eckey = getESKeypair(curve_type, key);
+			EC_KEY* eckey = getESPublicKey(curve_type, key);
 			ubyte* c = cast(ubyte*)signature.ptr;
 			ECDSA_SIG* sig = null;
 
