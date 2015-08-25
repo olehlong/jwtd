@@ -134,18 +134,19 @@ bool verify(string token, string key) {
 /**
  * Encode a string with URL-safe Base64.
  */
-string urlsafeB64Encode(string inp) {
-	import std.string : removechars;
+string urlsafeB64Encode(string inp) pure nothrow {
+	import std.string : indexOf;
 
-	char[] enc = Base64URL.encode(cast(ubyte[])inp);
-	return removechars(cast(string)(enc), "=");
+	auto enc = Base64URL.encode(cast(ubyte[])inp);
+	auto idx = enc.indexOf('=');
+	return cast(string)enc[0..idx > 0 ? idx : $];
 }
 
 /**
  * Decode a string with URL-safe Base64.
  */
-string urlsafeB64Decode(string inp) {
-	import std.array : replicate, join;
+string urlsafeB64Decode(string inp) pure {
+	import std.array : replicate;
 
 	int remainder = inp.length % 4;
 	if(remainder > 0) {
