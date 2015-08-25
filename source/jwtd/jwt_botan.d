@@ -26,19 +26,11 @@ version (UseBotan) {
 			import botan.filters.data_src;
 			import x509 = botan.pubkey.x509_key;
 			import botan.pubkey.algo.rsa;
-
+			
 			Unique!AutoSeededRNG rng = new AutoSeededRNG;
 			auto privKey = loadKey(cast(DataSource)DataSourceMemory(key), *rng);
 			auto signer = PKSigner(privKey, emsaName);
 			sign = signer.signMessage(cast(const(ubyte)*)msg.ptr, msg.length, *rng)[].dup;
-
-			debug
-			{
-				auto verifier = PKVerifier(privKey, emsaName);
-				assert(verifier.verifyMessage(
-						cast(const(ubyte)*)msg.ptr, msg.length,
-						cast(const(ubyte)*)sign.ptr, sign.length));
-			}
 		}
 
 		switch(algo) {

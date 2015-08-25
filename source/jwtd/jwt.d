@@ -188,8 +188,7 @@ xAwaNw3f9rNzYleNMnJA78hDbqWsiqaDmF6POxoXAoGAEsj9YmS8/kgoJITjNII6
 FIb2otyo1D4EXhfhvIH2K1A=
 -----END PRIVATE KEY-----
 EOS";
-	}
-	else {
+	} else {
 		string private256 = q"EOS
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAq+e/dME9Mrklp8hvhzqoAq+CWCyOHQrsoMhyuqieTr3QfURt
@@ -267,9 +266,9 @@ EOS";
 	assert(verify(rs256Token, public256));
 
 	version (UseOpenSSL) {
-	// es256
+		// es256
 
-	string es256Token = encode(["language": "D"], es256_key, JWTAlgorithm.ES256);
-	assert(verify(es256Token, es256_key));
+		string es256Token = encode(["language": "D"], es256_key, JWTAlgorithm.ES256);
+		assert(verify(es256Token, es256_key));
 	}
 }
