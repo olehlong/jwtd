@@ -46,12 +46,18 @@ string encode(string[string] payload, string key, JWTAlgorithm algo = JWTAlgorit
   full version that accepts JSONValue tree as payload and header fields
 */
 string encode(ref JSONValue payload, string key, JWTAlgorithm algo = JWTAlgorithm.HS256, JSONValue header_fields = null) {
-	if(header_fields.type == JSON_TYPE.NULL)
-		header_fields = (JSONValue[string]).init;
-	header_fields.object["alg"] = cast(string)algo;
-	header_fields.object["typ"] = "JWT";
+	import std.functional : memoize;
 
-	string encodedHeader = urlsafeB64Encode(header_fields.toString());
+	auto getEncodedHeader(JWTAlgorithm algo, JSONValue fields) {
+		if(header_fields.type == JSON_TYPE.NULL)
+			header_fields = (JSONValue[string]).init;
+		header_fields.object["alg"] = cast(string)algo;
+		header_fields.object["typ"] = "JWT";
+
+		return urlsafeB64Encode(header_fields.toString());
+	}
+
+	string encodedHeader = memoize!getEncodedHeader(algo, header_fields);
 	string encodedPayload = urlsafeB64Encode(payload.toString());
 
 	string signingInput = encodedHeader ~ "." ~ encodedPayload;
