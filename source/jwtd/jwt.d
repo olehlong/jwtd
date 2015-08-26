@@ -49,12 +49,12 @@ string encode(ref JSONValue payload, string key, JWTAlgorithm algo = JWTAlgorith
 	import std.functional : memoize;
 
 	auto getEncodedHeader(JWTAlgorithm algo, JSONValue fields) {
-		if(header_fields.type == JSON_TYPE.NULL)
-			header_fields = (JSONValue[string]).init;
-		header_fields.object["alg"] = cast(string)algo;
-		header_fields.object["typ"] = "JWT";
+		if(fields.type == JSON_TYPE.NULL)
+			fields = (JSONValue[string]).init;
+		fields.object["alg"] = cast(string)algo;
+		fields.object["typ"] = "JWT";
 
-		return urlsafeB64Encode(header_fields.toString());
+		return urlsafeB64Encode(fields.toString());
 	}
 
 	string encodedHeader = memoize!getEncodedHeader(algo, header_fields);
