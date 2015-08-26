@@ -57,7 +57,7 @@ string encode(ref JSONValue payload, string key, JWTAlgorithm algo = JWTAlgorith
 		return urlsafeB64Encode(fields.toString());
 	}
 
-	string encodedHeader = memoize!getEncodedHeader(algo, header_fields);
+	string encodedHeader = memoize!(getEncodedHeader, 64)(algo, header_fields);
 	string encodedPayload = urlsafeB64Encode(payload.toString());
 
 	string signingInput = encodedHeader ~ "." ~ encodedPayload;
