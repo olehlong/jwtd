@@ -91,9 +91,12 @@ JSONValue decode(string token, string key) {
 		throw new VerifyException("Algorithm is incorrect.");
 	}
 
-	string typ = header["typ"].str();
-	if(typ && typ != "JWT")
-		throw new VerifyException("Type is incorrect.");
+	if (auto typ = ("typ" in header)) {
+		string typ_str = typ.str();
+		if(typ_str && typ_str != "JWT")
+			throw new VerifyException("Type is incorrect.");
+	}
+
 
 	if(!verifySignature(urlsafeB64Decode(tokenParts[2]), tokenParts[0]~"."~tokenParts[1], key, alg))
 		throw new VerifyException("Signature is incorrect.");
@@ -130,9 +133,11 @@ bool verify(string token, string key) {
 		throw new VerifyException("Algorithm is incorrect.");
 	}
 
-	string typ = header["typ"].str();
-	if(typ && typ != "JWT")
-		throw new VerifyException("Type is incorrect.");
+	if (auto typ = ("typ" in header)) {
+		string typ_str = typ.str();
+		if(typ_str && typ_str != "JWT")
+			throw new VerifyException("Type is incorrect.");
+	}
 
 	return verifySignature(urlsafeB64Decode(tokenParts[2]), tokenParts[0]~"."~tokenParts[1], key, alg);
 }
