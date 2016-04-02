@@ -24,6 +24,11 @@
 			"versions": ["UseBotan"]
 		},
 		{
+			"name": "phobos",
+			"targetType": "library",
+			"versions": ["UsePhobos"]
+		},
+		{
 			"name": "unittest-openssl",
 			"mainSourceFile": "source/app.d",
 			"targetType": "executable",
@@ -40,6 +45,12 @@
 				"botan": "~>1.12.0"
 			},
 			"versions": ["UseBotan"]
+		},
+		{
+			"name": "unittest-phobos",
+			"mainSourceFile": "source/app.d",
+			"targetType": "executable",
+			"versions": ["UsePhobos"]
 		}
 	]
 }
