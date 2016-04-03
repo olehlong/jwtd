@@ -7,12 +7,12 @@ import std.array : split;
 
 version(UseBotan) {
 	public import jwtd.jwt_botan;
-}
-version(UseOpenSSL) {
-	public import jwtd.jwt_openssl;
-}
-version(UsePhobos) {
-	public import jwtd.jwt_phobos;
+} else {
+	version(UsePhobos) {
+		public import jwtd.jwt_phobos;
+	} else {
+		public import jwtd.jwt_openssl;
+	}
 }
 
 enum JWTAlgorithm : string {
