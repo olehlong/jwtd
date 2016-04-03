@@ -49,6 +49,10 @@ dub build --config=openssl
 ```
 dub build --config=botan
 ```
+#### Using Phobos
+```
+dub build --config=phobos
+```
 
 ## Testing
 
@@ -60,7 +64,10 @@ dub test --config=unittest-openssl
 ```
 dub test --config=unittest-botan
 ```
-
+### Using Phobos
+```
+dub test --config=unittest-phobos
+```
 
 
 
