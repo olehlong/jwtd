@@ -5,14 +5,14 @@ import std.base64;
 import std.algorithm;
 import std.array : split;
 
+version(UseOpenSSL) {
+	public import jwtd.jwt_openssl;
+}
 version(UseBotan) {
 	public import jwtd.jwt_botan;
-} else {
-	version(UsePhobos) {
-		public import jwtd.jwt_phobos;
-	} else {
-		public import jwtd.jwt_openssl;
-	}
+}
+version(UsePhobos) {
+	public import jwtd.jwt_phobos;
 }
 
 enum JWTAlgorithm : string {
