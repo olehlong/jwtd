@@ -7,8 +7,12 @@ import std.array : split;
 
 version(UseBotan) {
 	public import jwtd.jwt_botan;
-} else {
+}
+version(UseOpenSSL) {
 	public import jwtd.jwt_openssl;
+}
+version(UsePhobos) {
+	public import jwtd.jwt_phobos;
 }
 
 enum JWTAlgorithm : string {
@@ -289,6 +293,9 @@ EOS";
 	assert(hs512Token == "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJsYW5ndWFnZSI6IkQifQ.tDRXngYs15t6Q-9AortMxXNfvTgVjaQGD9VTlwL3JD6Xxab8ass2ekCoom8uOiRdpZ772ajLQD42RXMuALct1Q");
 	assert(verify(hs512Token, hs_secret));
 
+	version(UsePhobos) {
+		//Not supported
+	} else {
 	// rs256
 
 	string rs256Token = encode(["language": "D"], private256, JWTAlgorithm.RS256);
@@ -299,4 +306,5 @@ EOS";
 
 	string es256Token = encode(["language": "D"], es256_private, JWTAlgorithm.ES256);
 	assert(verify(es256Token, es256_public));
+	}
 }

@@ -1,4 +1,6 @@
 .dub
+dub.userprefs
+dub.selections.json
 .buildpath
 .project
 .settings

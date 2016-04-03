@@ -29,6 +29,12 @@ D implementation of [JSON Web Token](http://jwt.io/).
 
 **NOTE** - Botan supports private keys just in PKCS#8 format (for RS and ES signatures)
 
+### Phobos
+- NONE
+- HS256
+- HS384
+- HS512
+
 ## Installation
 
 See [DUB page](http://code.dlang.org/packages/jwtd).
