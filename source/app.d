@@ -13,6 +13,10 @@ void main() {
 		version(UseOpenSSL) {
 			writeln("Encryption library: OpenSSL.");
 		}
+		
+		version(UsePhobos) {
+			writeln("Encryption library: Phobos.");
+		}
 
 		writeln("All unit tests were successful.");
 	}
