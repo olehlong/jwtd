@@ -4,7 +4,8 @@
 	"license": "MIT",
 	"authors": [
 		"Oleh Havrys",
-		"Sergey Buth"
+		"Sergey Buth",
+		"Tomáš Chaloupka"
 	],
 	"configurations": [
 		{
