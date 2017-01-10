@@ -14,7 +14,7 @@ D implementation of [JSON Web Token](http://jwt.io/).
 - ES256
 - ES384
 - ES512
-	
+
 #### [Botan](https://github.com/etcimon/botan)
 - NONE
 - HS256
@@ -45,18 +45,18 @@ See [DUB page](http://code.dlang.org/packages/jwtd).
 ```
 dub build --config=openssl
 ```
-#### Using Botan
+### Using Botan
 ```
 dub build --config=botan
 ```
-#### Using Phobos
+### Using Phobos
 ```
 dub build --config=phobos
 ```
 
 ## Testing
 
-#### Using OpenSSL
+### Using OpenSSL
 ```
 dub test --config=unittest-openssl
 ```
@@ -68,7 +68,3 @@ dub test --config=unittest-botan
 ```
 dub test --config=unittest-phobos
 ```
-
-
-
-
