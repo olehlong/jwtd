@@ -79,7 +79,15 @@ string encode(in ubyte[] payload, string key, JWTAlgorithm algo = JWTAlgorithm.H
 	return signingInput ~ "." ~ signature;
 }
 
+unittest {
+    import jwtd.test;
 
+	// Code coverage for when header_fields is NULL type
+	auto header_fields = JSONValue();
+	assert(header_fields.type == JSON_TYPE.NULL);
+    auto payload = JSONValue([ "a" : "b" ]);
+	encode(payload, public256, JWTAlgorithm.HS256, header_fields);
+}
 
 /**
   simple version that knows which key was used to encode the token
@@ -131,10 +139,113 @@ JSONValue decode(string token, string delegate(ref JSONValue jose) lazyKey) {
 	try {
 		payload = parseJSON(urlsafeB64Decode(tokenParts[1]));
 	} catch(JSONException e) {
+		// Code coverage has to miss this line because the signature test above throws before this does
 		throw new VerifyException("Payload JSON is incorrect.");
 	}
 
 	return payload;
+}
+
+unittest {
+    import jwtd.test;
+    import std.traits : EnumMembers;
+
+    struct Keys {
+        string priv;
+        string pub;
+
+        this (string priv, string pub = null) {
+            this.priv = priv;
+            this.pub = (pub ? pub : priv);
+        }
+    }
+
+    auto commonAlgos = [
+        JWTAlgorithm.NONE  : Keys(),
+        JWTAlgorithm.HS256 : Keys("my key"),
+        JWTAlgorithm.HS384 : Keys("his key"),
+        JWTAlgorithm.HS512 : Keys("her key"),
+    ];
+
+    version (UseOpenSSL) {
+        Keys[JWTAlgorithm] specialAlgos = [
+            JWTAlgorithm.RS256 : Keys(private256, public256),
+            // TODO: Find key pairs for RS384 and RS512
+            // JWTAlgorithm.RS384 : Keys(private384, public384),
+            // JWTAlgorithm.RS512 : Keys(private512, public512),
+            JWTAlgorithm.ES256 : Keys(es256_private, es256_public),
+            JWTAlgorithm.ES384 : Keys(es384_private, es384_public),
+            JWTAlgorithm.ES512 : Keys(es512_private, es512_public),
+        ];
+    }
+
+    version (UseBotan) {
+        Keys[JWTAlgorithm] specialAlgos = [
+            JWTAlgorithm.RS256 : Keys(private256, public256),
+            // TODO: Find key pairs for the following
+            // JWTAlgorithm.RS384 : Keys(private384, public384),
+            // JWTAlgorithm.RS512 : Keys(private512, public512),
+            // JWTAlgorithm.ES256 : Keys(es256_private, es256_public),
+            // JWTAlgorithm.ES384 : Keys(es384_private, es384_public),
+            // JWTAlgorithm.ES512 : Keys(es512_private, es512_public),
+        ];
+    }
+
+    else {
+    }
+
+    version (UsePhobos) {
+        Keys[JWTAlgorithm] specialAlgos;
+    }
+
+    void testWith(Keys[JWTAlgorithm] keys) {
+        foreach (algo, k; keys) {
+            auto payload = JSONValue([ "claim" : "value" ]);
+            const encoded = encode(payload, k.priv, algo);
+            const decoded = decode(encoded, k.pub);
+            assert(decoded == payload);
+        }
+    }
+
+    testWith(commonAlgos);
+    testWith(specialAlgos);
+}
+
+version (unittest) {
+	string corruptEncodedString(size_t part, string field, string badValue) {
+		import std.conv : text;
+
+		string encoded = encode([ "my" : "payload" ], "key");
+		string[] tokenParts = split(encoded, ".");
+		auto jsonValue = parseJSON(urlsafeB64Decode(tokenParts[part]));
+		jsonValue[field] = badValue;
+		tokenParts[part] = urlsafeB64Encode(jsonValue.toString());
+		return text(tokenParts.joiner("."));
+	}
+}
+
+unittest {
+	import std.exception : assertThrown;
+
+    // decode() must not accept invalid tokens
+
+    // Must have 2 dots
+	assertThrown!VerifyException(decode("nodot", "key"));
+	assertThrown!VerifyException(decode("one.dot", "key"));
+	assertThrown!VerifyException(decode("thr.e.e.dots", "key"));
+
+    // Must have valid header
+ 	assertThrown!VerifyException(decode("corrupt.encoding.blah", "key"));
+
+    // Must be a known algorithm
+	assertThrown!VerifyException(decode(corruptEncodedString(0, "alg", "bogus_alg"), "key"));
+
+    // Must be JWT type
+	assertThrown!VerifyException(decode(corruptEncodedString(0, "typ", "JWX"), "key"));
+
+    // Must have valid signature
+	string encoded = encode([ "my" : "payload" ], "key");
+	assertThrown!VerifyException(decode(encoded[0..$-1], "key"));
 }
 
 bool verify(string token, string key) {
@@ -167,6 +278,21 @@ bool verify(string token, string key) {
 	return verifySignature(urlsafeB64Decode(tokenParts[2]), tokenParts[0]~"."~tokenParts[1], key, alg);
 }
 
+unittest {
+    // verify() must not accept invalid tokens
+
+	import std.exception : assertThrown;
+
+    // Must have 2 dots
+	assertThrown!VerifyException(verify("nodot", "key"));
+	assertThrown!VerifyException(verify("one.dot", "key"));
+	assertThrown!VerifyException(verify("thr.e.e.dots", "key"));
+
+    // Must have valid algorithm and type
+	assertThrown!VerifyException(verify(corruptEncodedString(0, "alg", "bogus_alg"), "key"));
+	assertThrown!VerifyException(verify(corruptEncodedString(0, "typ", "JWX"), "key"));
+}
+
 /**
  * Encode a string with URL-safe Base64.
  */
@@ -182,106 +308,7 @@ string urlsafeB64Decode(string inp) pure {
 }
 
 unittest {
-
-	version(UseBotan) {
-		string private256 = q"EOS
------BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCr5790wT0yuSWn
-yG+HOqgCr4JYLI4dCuygyHK6qJ5OvdB9RG1Rj531VXQ2F+BJGtvOxgah05X6y6jm
-Ov/OL/NMN8S8MWMhXPYd9/NPOuJD+ricXalmp9pL5y2qrrAhrkTTlptbiYrq/PVe
-e6qLXC7wp9RmMQDlTxlrkykzgTo/rbjMzP43wL2TovI2ATc+v15T63uhtk1mdAIs
-EXiDljFhD6alW8+tHlZmF9EJERPfCE8LSRHHLt/V0HGnGr3Pq519Q/lL9TJSqWJ4
-x4Lpjz715qDsN//8aEdvwyVRSACVNeceE4t/WVQSqVZZwfElz2y1uAyw8I6W+S6t
-AJXfoc5JAgMBAAECggEAW2TjwlQ2kDAlV/XVbcT+rCbZmr1ddQ1ozvajIKAjQmPi
-Y6cso69CYLvlBBlfkh5ofJ+FySWv2F3M11LIy7tsk7oWq6NqO8OryjUYM6hvwYqb
-+e5F8SEOi0pGWjdzxwRa7U9mG52dsN96KJiBDISfJC1mXEpzWnbaYfokbpCnAlEf
-mJrFoJwBj7PFcN/U0lyou2UJB8/JwtPx89Y4VVSu1SdQbwMSbxXyvWgeHpSwJCyt
-BsHbSpYl2JDGv1bauLDp478Scr2+xdepEbOtfK5oTbNl7OBRG2GBViI+l746sPJ5
-RZ2mfVSiHQ+sXM+0tUSNikyZPlOkGRuEoFL/it7TnQKBgQDgmY7A5eD32R526zLl
-yCGwRcjd8399RoCPad8/euMlosSIw5Kb+Y3wIMZ2g4peaGTvDW6ne/YAwATIpsh2
-swBVz+b0aIo0+6I42Udlb/FAYGKX0xjzg2FZSzCDR+DvS7g6el/JiduucM+34Gko
-g7SflbpPMOziIWiBOVqTLkHvtwKBgQDD8D+NkEjHJhQmB7G3tqiH9Zjd3+AeYDKK
-aTSBrBCzMhAXjbjwcY+bdlMvwWhcAwI0UQC3Tew25siHJtLpsfP6CLY/+81QYavD
-dt1dbiB5ahpkbB8OYqDQH+rvI4fcyEnWhKGaEibI3VAY+nd9y11prHvwmcZOblpc
-gEBzV34x/wKBgEBurQ5XpEdWCTBSXwKefFOmYW6S+UMGI8GAvOPoLBvS6xDVEk0e
-tYJq1KSRLfPRfQs7TkBMBpHGhFjPx/iNd44mm3oIN4Xlnm8ynhHSoGI4hHBLxf+t
-9BJ6yIsQ5s2falWUX8BghR4xDNYSUfimd/3EJXOsdHiW3vUbcAmDHrVXAoGBAKtp
-IOACSnjWSige8Q0r4XHXnFz1/oX0WCKX+NQ8J/vsHwHL/O90GVLCh/GuPFLKWwJT
-ntG9fJlm+iSqBTdmc27Ycj+1VB8u4unDsdKLhiNRfDdAE0ctZ0vLsGZ2aePu4BGn
-xAwaNw3f9rNzYleNMnJA78hDbqWsiqaDmF6POxoXAoGAEsj9YmS8/kgoJITjNII6
-04wowxcMS/eUffQ7bPizLDYRPQQ0CKhAPC+vVz+wWzJSgHCcuYmHBjG6940Ethg1
-+AsWwkm893VF6r6eLjt7byoqfaJEbsZm9y2mQi353PHIChq7CynEQSI+kaPP3V28
-FIb2otyo1D4EXhfhvIH2K1A=
------END PRIVATE KEY-----
-EOS";
-	} else {
-		string private256 = q"EOS
------BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEAq+e/dME9Mrklp8hvhzqoAq+CWCyOHQrsoMhyuqieTr3QfURt
-UY+d9VV0NhfgSRrbzsYGodOV+suo5jr/zi/zTDfEvDFjIVz2HffzTzriQ/q4nF2p
-ZqfaS+ctqq6wIa5E05abW4mK6vz1Xnuqi1wu8KfUZjEA5U8Za5MpM4E6P624zMz+
-N8C9k6LyNgE3Pr9eU+t7obZNZnQCLBF4g5YxYQ+mpVvPrR5WZhfRCRET3whPC0kR
-xy7f1dBxpxq9z6udfUP5S/UyUqlieMeC6Y8+9eag7Df//GhHb8MlUUgAlTXnHhOL
-f1lUEqlWWcHxJc9stbgMsPCOlvkurQCV36HOSQIDAQABAoIBAFtk48JUNpAwJVf1
-1W3E/qwm2Zq9XXUNaM72oyCgI0Jj4mOnLKOvQmC75QQZX5IeaHyfhcklr9hdzNdS
-yMu7bJO6FqujajvDq8o1GDOob8GKm/nuRfEhDotKRlo3c8cEWu1PZhudnbDfeiiY
-gQyEnyQtZlxKc1p22mH6JG6QpwJRH5iaxaCcAY+zxXDf1NJcqLtlCQfPycLT8fPW
-OFVUrtUnUG8DEm8V8r1oHh6UsCQsrQbB20qWJdiQxr9W2riw6eO/EnK9vsXXqRGz
-rXyuaE2zZezgURthgVYiPpe+OrDyeUWdpn1Uoh0PrFzPtLVEjYpMmT5TpBkbhKBS
-/4re050CgYEA4JmOwOXg99kedusy5cghsEXI3fN/fUaAj2nfP3rjJaLEiMOSm/mN
-8CDGdoOKXmhk7w1up3v2AMAEyKbIdrMAVc/m9GiKNPuiONlHZW/xQGBil9MY84Nh
-WUswg0fg70u4OnpfyYnbrnDPt+BpKIO0n5W6TzDs4iFogTlaky5B77cCgYEAw/A/
-jZBIxyYUJgext7aoh/WY3d/gHmAyimk0gawQszIQF4248HGPm3ZTL8FoXAMCNFEA
-t03sNubIhybS6bHz+gi2P/vNUGGrw3bdXW4geWoaZGwfDmKg0B/q7yOH3MhJ1oSh
-mhImyN1QGPp3fctdaax78JnGTm5aXIBAc1d+Mf8CgYBAbq0OV6RHVgkwUl8CnnxT
-pmFukvlDBiPBgLzj6Cwb0usQ1RJNHrWCatSkkS3z0X0LO05ATAaRxoRYz8f4jXeO
-Jpt6CDeF5Z5vMp4R0qBiOIRwS8X/rfQSesiLEObNn2pVlF/AYIUeMQzWElH4pnf9
-xCVzrHR4lt71G3AJgx61VwKBgQCraSDgAkp41kooHvENK+Fx15xc9f6F9Fgil/jU
-PCf77B8By/zvdBlSwofxrjxSylsCU57RvXyZZvokqgU3ZnNu2HI/tVQfLuLpw7HS
-i4YjUXw3QBNHLWdLy7Bmdmnj7uARp8QMGjcN3/azc2JXjTJyQO/IQ26lrIqmg5he
-jzsaFwKBgBLI/WJkvP5IKCSE4zSCOtOMKMMXDEv3lH30O2z4syw2ET0ENAioQDwv
-r1c/sFsyUoBwnLmJhwYxuveNBLYYNfgLFsJJvPd1Req+ni47e28qKn2iRG7GZvct
-pkIt+dzxyAoauwspxEEiPpGjz91dvBSG9qLcqNQ+BF4X4byB9itQ
------END RSA PRIVATE KEY-----
-EOS";
-	}
-
-	string public256 = q"EOS
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq+e/dME9Mrklp8hvhzqo
-Aq+CWCyOHQrsoMhyuqieTr3QfURtUY+d9VV0NhfgSRrbzsYGodOV+suo5jr/zi/z
-TDfEvDFjIVz2HffzTzriQ/q4nF2pZqfaS+ctqq6wIa5E05abW4mK6vz1Xnuqi1wu
-8KfUZjEA5U8Za5MpM4E6P624zMz+N8C9k6LyNgE3Pr9eU+t7obZNZnQCLBF4g5Yx
-YQ+mpVvPrR5WZhfRCRET3whPC0kRxy7f1dBxpxq9z6udfUP5S/UyUqlieMeC6Y8+
-9eag7Df//GhHb8MlUUgAlTXnHhOLf1lUEqlWWcHxJc9stbgMsPCOlvkurQCV36HO
-SQIDAQAB
------END PUBLIC KEY-----
-EOS";
-
-	version(UseBotan) {
-		string es256_private = q"EOS
------BEGIN PRIVATE KEY-----
-MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgHxxA+0sQXmE4myibmhVT
-l0ymANRHZBi4lNd22/F7NCWhRANCAAQy5KexZuIg/J8UAgC+VuWI85SdCWJtvrvI
-TolSpdVp69vxmisrYd/F8WD2kZWGDdIa4EJsdwnzhYo5fcZIwTBw
------END PRIVATE KEY-----
-EOS";
-	} else {
-		string es256_private = q"EOS
------BEGIN EC PRIVATE KEY-----
-MHQCAQEEIB8cQPtLEF5hOJsom5oVU5dMpgDUR2QYuJTXdtvxezQloAcGBSuBBAAK
-oUQDQgAEMuSnsWbiIPyfFAIAvlbliPOUnQlibb67yE6JUqXVaevb8ZorK2HfxfFg
-9pGVhg3SGuBCbHcJ84WKOX3GSMEwcA==
------END EC PRIVATE KEY-----
-EOS";
-	}
-
-	string es256_public = q"EOS
------BEGIN PUBLIC KEY-----
-MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEMuSnsWbiIPyfFAIAvlbliPOUnQlibb67
-yE6JUqXVaevb8ZorK2HfxfFg9pGVhg3SGuBCbHcJ84WKOX3GSMEwcA==
------END PUBLIC KEY-----
-EOS";
+    import jwtd.test;
 
 	string hs_secret = "secret";
 

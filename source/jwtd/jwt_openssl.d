@@ -65,6 +65,16 @@ version(UseOpenSSL) {
 		return eckey;
 	}
 
+    unittest {
+        import jwtd.test;
+        import std.exception : assertThrown;
+
+        assertThrown(getESKeypair(0, "key"));
+        assertThrown(getESKeypair(NID_secp256k1, "bogus_key"));
+        assertThrown(getESKeypair(NID_secp256k1, null));
+        assertThrown(getESKeypair(NID_secp256k1, private256));
+    }
+
 	EC_KEY* getESPrivateKey(uint curve_type, string key) {
 		EC_GROUP* curve;
 		EVP_PKEY* pktmp;
@@ -100,6 +110,13 @@ version(UseOpenSSL) {
 		return eckey;
 	}
 
+    unittest {
+        import std.exception : assertThrown;
+        assertThrown(getESPrivateKey(0, "key"));
+        assertThrown(getESPrivateKey(NID_secp256k1, "bogus_key"));
+        assertThrown(getESPrivateKey(NID_secp256k1, null));
+    }
+
 	EC_KEY* getESPublicKey(uint curve_type, string key) {
 		EC_GROUP* curve;
 
@@ -127,6 +144,17 @@ version(UseOpenSSL) {
 
 		return eckey;
 	}
+
+    unittest {
+        import jwtd.test;
+        import std.exception : assertThrown;
+
+        assertThrown(getESPublicKey(0, "key"));
+
+        auto eckey = getESPublicKey(NID_secp256k1, es256_public);
+        EC_KEY_free(eckey);
+        assertThrown(getESPublicKey(NID_secp256k1, null));
+    }
 
 	string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 		ubyte[] sign;
@@ -245,6 +273,7 @@ version(UseOpenSSL) {
 		return cast(string)sign;
 	}
 
+
 	bool verifySignature(string signature, string signing_input, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 
 		bool verify_rs(ubyte* hash, int type, uint len, uint signLen) {
@@ -327,4 +356,12 @@ version(UseOpenSSL) {
 				throw new VerifyException("Wrong algorithm.");
 		}
 	}
+}
+
+unittest {
+    version (UseOpenSSL) {
+        import std.exception : assertThrown;
+        assertThrown!SignException(sign("message", "key", cast(JWTAlgorithm)"bogus_algo"));
+        assertThrown!VerifyException(verifySignature("signature", "signing_input", "key", cast(JWTAlgorithm)"bogus_algo"));
+    }
 }
