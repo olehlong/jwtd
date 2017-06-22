@@ -5,6 +5,8 @@ import std.base64;
 import std.algorithm;
 import std.array : split;
 
+private alias Base64URLNoPadding = Base64Impl!('-', '_', Base64.NoPadding);
+
 version(UseOpenSSL) {
 	public import jwtd.jwt_openssl;
 }
@@ -46,10 +48,18 @@ string encode(string[string] payload, string key, JWTAlgorithm algo = JWTAlgorit
 
 	return encode(jsonPayload, key, algo, jsonHeader);
 }
+
 /**
   full version that accepts JSONValue tree as payload and header fields
 */
 string encode(ref JSONValue payload, string key, JWTAlgorithm algo = JWTAlgorithm.HS256, JSONValue header_fields = null) {
+	return encode(cast(ubyte[])payload.toString(), key, algo, header_fields);
+}
+
+/**
+  full version that accepts ubyte[] as payload and JSONValue tree as header fields
+*/
+string encode(in ubyte[] payload, string key, JWTAlgorithm algo = JWTAlgorithm.HS256, JSONValue header_fields = null) {
 	import std.functional : memoize;
 
 	auto getEncodedHeader(JWTAlgorithm algo, JSONValue fields) {
@@ -58,14 +68,14 @@ string encode(ref JSONValue payload, string key, JWTAlgorithm algo = JWTAlgorith
 		fields.object["alg"] = cast(string)algo;
 		fields.object["typ"] = "JWT";
 
-		return urlsafeB64Encode(fields.toString());
+		return Base64URLNoPadding.encode(cast(ubyte[])fields.toString()).idup;
 	}
 
 	string encodedHeader = memoize!(getEncodedHeader, 64)(algo, header_fields);
-	string encodedPayload = urlsafeB64Encode(payload.toString());
+	string encodedPayload = Base64URLNoPadding.encode(payload);
 
 	string signingInput = encodedHeader ~ "." ~ encodedPayload;
-	string signature = urlsafeB64Encode(sign(signingInput, key, algo));
+	string signature = Base64URLNoPadding.encode(cast(ubyte[])sign(signingInput, key, algo));
 
 	return signingInput ~ "." ~ signature;
 }
@@ -150,25 +160,14 @@ bool verify(string token, string key) {
  * Encode a string with URL-safe Base64.
  */
 string urlsafeB64Encode(string inp) pure nothrow {
-	import std.string : indexOf;
-
-	auto enc = Base64URL.encode(cast(ubyte[])inp);
-	auto idx = enc.indexOf('=');
-	return cast(string)enc[0..idx > 0 ? idx : $];
+	return Base64URLNoPadding.encode(cast(ubyte[])inp);
 }
 
 /**
  * Decode a string with URL-safe Base64.
  */
 string urlsafeB64Decode(string inp) pure {
-	import std.array : replicate;
-
-	int remainder = inp.length % 4;
-	if(remainder > 0) {
-		int padlen = 4 - remainder;
-		inp ~= replicate("=", padlen);
-	}
-	return cast(string)(Base64URL.decode(cast(ubyte[])inp));
+	return cast(string)Base64URLNoPadding.decode(inp);
 }
 
 unittest {
