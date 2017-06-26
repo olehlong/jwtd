@@ -1,3 +1,4 @@
+module jwtd.app;
 import jwtd.jwt;
 
 unittest {
