@@ -8,7 +8,7 @@ version (UsePhobos) {
 		import std.digest.hmac;
 
 		ubyte[] sign;
-		
+
 		void sign_hs(SHA)() {
 			import std.string : representation;
 
@@ -16,7 +16,7 @@ version (UsePhobos) {
 			hmac.put(msg.representation);
 			sign = hmac.finish().dup;
 		}
-		
+
 		switch(algo) {
 			case JWTAlgorithm.NONE: {
 				break;
@@ -43,14 +43,14 @@ version (UsePhobos) {
 			default:
 				throw new SignException("Wrong algorithm.");
 		}
-		
+
 		return cast(string)sign;
 	}
-	
+
 	bool verifySignature(string signature, string signing_input, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 		switch(algo) {
 			case JWTAlgorithm.NONE:
-				return true;
+				return key.length == 0;
 			case JWTAlgorithm.HS256:
 			case JWTAlgorithm.HS384:
 			case JWTAlgorithm.HS512:

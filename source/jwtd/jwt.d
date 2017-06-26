@@ -279,6 +279,7 @@ EOS";
 	string noneToken = encode(["language": "D"], "", JWTAlgorithm.NONE);
 	assert(noneToken == "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJsYW5ndWFnZSI6IkQifQ.");
 	assert(verify(noneToken, ""));
+	assert(!verify(noneToken, "somesecret"));
 
 	// hs256
 
