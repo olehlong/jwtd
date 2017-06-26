@@ -13,7 +13,7 @@ version(UseOpenSSL) {
 	EC_KEY* getESKeypair(uint curve_type, string key) {
 		EC_GROUP* curve;
 		EVP_PKEY* pktmp;
-		BIO* bpo; 
+		BIO* bpo;
 		EC_POINT* pub;
 
 		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
@@ -78,12 +78,12 @@ version(UseOpenSSL) {
 
 		return eckey;
 	}
-	
+
 	EC_KEY* getESPrivateKey(uint curve_type, string key) {
 		EC_GROUP* curve;
 		EVP_PKEY* pktmp;
 		BIO* bpo;
-		
+
 		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
 			throw new Exception("Unsupported curve.");
 
@@ -106,13 +106,13 @@ version(UseOpenSSL) {
 		EC_KEY * eckey;
 	 	eckey = EVP_PKEY_get1_EC_KEY(pktmp);
 		EVP_PKEY_free(pktmp);
-		
+
 		if(eckey is null) {
 			EC_GROUP_free(curve);
 
 			throw new Exception("Can't convert evp_pkey to EC_KEY.");
 		}
-		
+
 		if(1 != EC_KEY_set_group(eckey, curve)) {
 			EC_GROUP_free(curve);
 
@@ -120,39 +120,39 @@ version(UseOpenSSL) {
 		}
 
 		EC_GROUP_free(curve);
-		
+
 		return eckey;
 	}
-	
+
 	EC_KEY* getESPublicKey(uint curve_type, string key) {
 		EC_GROUP* curve;
-		
+
 		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
 			throw new Exception("Unsupported curve.");
 
 		EC_KEY* eckey = EC_KEY_new();
-		
+
 		BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 		if(bpo is null) {
 			EC_GROUP_free(curve);
 			throw new Exception("Can't load the key.");
 		}
-		
+
 		eckey = PEM_read_bio_EC_PUBKEY(bpo, null, null, null);
-		
+
 		if(1 != EC_KEY_set_group(eckey, curve)) {
 			BIO_free(bpo);
 			EC_GROUP_free(curve);
 
 			throw new Exception("Can't associate group with the key.");
 		}
-		
+
 		BIO_free(bpo);
 		EC_GROUP_free(curve);
-		
+
 		if(0 == EC_KEY_check_key(eckey))
 			throw new Exception("Public key is not valid.");
-		
+
 		return eckey;
 	}
 
@@ -207,7 +207,7 @@ version(UseOpenSSL) {
 			case JWTAlgorithm.NONE: {
 				break;
 			}
-			case JWTAlgorithm.HS256: {	
+			case JWTAlgorithm.HS256: {
 				sign_hs(EVP_sha256(), SHA256_DIGEST_LENGTH);
 				break;
 			}
@@ -242,19 +242,19 @@ version(UseOpenSSL) {
 				SHA256(cast(const(ubyte)*)msg.ptr, msg.length, hash.ptr);
 				sign_es(NID_secp256k1, hash.ptr, SHA256_DIGEST_LENGTH);
 				break;
-			} 
+			}
 			case JWTAlgorithm.ES384: {
 				ubyte[] hash = new ubyte[SHA384_DIGEST_LENGTH];
 				SHA384(cast(const(ubyte)*)msg.ptr, msg.length, hash.ptr);
 				sign_es(NID_secp384r1, hash.ptr, SHA384_DIGEST_LENGTH);
 				break;
-			} 
+			}
 			case JWTAlgorithm.ES512: {
 				ubyte[] hash = new ubyte[SHA512_DIGEST_LENGTH];
 				SHA512(cast(const(ubyte)*)msg.ptr, msg.length, hash.ptr);
 				sign_es(NID_secp521r1, hash.ptr, SHA512_DIGEST_LENGTH);
 				break;
-			} 
+			}
 
 			default:
 				throw new SignException("Wrong algorithm.");
@@ -296,7 +296,7 @@ version(UseOpenSSL) {
 
 		switch(algo) {
 			case JWTAlgorithm.NONE: {
-				return true;
+				return key.length == 0;
 			}
 			case JWTAlgorithm.HS256:
 			case JWTAlgorithm.HS384:

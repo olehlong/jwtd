@@ -25,7 +25,7 @@ version (UseBotan) {
 		void sign_rs(string emsaName) {
 			import botan.filters.data_src;
 			import botan.pubkey.algo.rsa;
-			
+
 			Unique!AutoSeededRNG rng = new AutoSeededRNG;
 			auto privKey = loadKey(cast(DataSource)DataSourceMemory(key), *rng);
 			auto signer = PKSigner(privKey, emsaName);
@@ -114,7 +114,7 @@ version (UseBotan) {
 
 		switch(algo) {
 			case JWTAlgorithm.NONE:
-				return true;
+				return key.length == 0;
 			case JWTAlgorithm.HS256:
 			case JWTAlgorithm.HS384:
 			case JWTAlgorithm.HS512:
