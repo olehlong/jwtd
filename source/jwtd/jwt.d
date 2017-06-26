@@ -41,7 +41,6 @@ class VerifyException : Exception {
 /**
   simple version that accepts only strings as values for payload and header fields
 */
-
 string encode(string[string] payload, string key, JWTAlgorithm algo = JWTAlgorithm.HS256, string[string] header_fields = null) {
 	JSONValue jsonHeader = header_fields;
 	JSONValue jsonPayload = payload;
@@ -80,7 +79,19 @@ string encode(in ubyte[] payload, string key, JWTAlgorithm algo = JWTAlgorithm.H
 	return signingInput ~ "." ~ signature;
 }
 
+
+
+/**
+  simple version that knows which key was used to encode the token
+*/
 JSONValue decode(string token, string key) {
+	return decode(token, (ref _) => key);
+}
+
+/**
+  full version where the key is provided after decoding the JOSE header
+*/
+JSONValue decode(string token, string delegate(ref JSONValue jose) lazyKey) {
 	import std.algorithm : count;
 	import std.conv : to;
 	import std.uni : toUpper;
@@ -111,7 +122,7 @@ JSONValue decode(string token, string key) {
 			throw new VerifyException("Type is incorrect.");
 	}
 
-
+	const key = lazyKey(header);
 	if(!verifySignature(urlsafeB64Decode(tokenParts[2]), tokenParts[0]~"."~tokenParts[1], key, alg))
 		throw new VerifyException("Signature is incorrect.");
 
