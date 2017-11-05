@@ -18,66 +18,62 @@ version(UseOpenSSL) {
 
 		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
 			throw new Exception("Unsupported curve.");
+		scope(exit) EC_GROUP_free(curve);
 
 		bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 		if(bpo is null) {
-			EC_GROUP_free(curve);
 			throw new Exception("Can't load the key.");
 		}
+		scope(exit) BIO_free(bpo);
 
 		pktmp = PEM_read_bio_PrivateKey(bpo, null, null, null);
 		if(pktmp is null) {
-			EC_GROUP_free(curve);
-			BIO_free(bpo);
-
 			throw new Exception("Can't load the evp_pkey.");
 		}
+		scope(exit) EVP_PKEY_free(pktmp);
 
-		BIO_free(bpo);
-
-		EC_KEY * eckey;
-	 	eckey = EVP_PKEY_get1_EC_KEY(pktmp);
-		EVP_PKEY_free(pktmp);
-
+		EC_KEY* eckey;
+		eckey = EVP_PKEY_get1_EC_KEY(pktmp);
 		if(eckey is null) {
-			EC_GROUP_free(curve);
-
 			throw new Exception("Can't convert evp_pkey to EC_KEY.");
 		}
-		if(1 != EC_KEY_set_group(eckey, curve)) {
-			EC_GROUP_free(curve);
+		scope(failure) EC_KEY_free(eckey);
 
+		if(1 != EC_KEY_set_group(eckey, curve)) {
 			throw new Exception("Can't associate group with the key.");
 		}
 
 		const BIGNUM *prv = EC_KEY_get0_private_key(eckey);
 		if(null == prv) {
-			EC_GROUP_free(curve);
-
-			throw new Exception("Can't get private ke.y");
+			throw new Exception("Can't get private key.");
 		}
 
 		pub = EC_POINT_new(curve);
+		if(null == pub) {
+			throw new Exception("Can't allocate EC point.");
+		}
+		scope(exit) EC_POINT_free(pub);
 
 		if (1 != EC_POINT_mul(curve, pub, prv, null, null, null)) {
-			EC_GROUP_free(curve);
-			EC_POINT_free(pub);
-
 			throw new Exception("Can't calculate public key.");
 		}
 
 		if(1 != EC_KEY_set_public_key(eckey, pub)) {
-			EC_GROUP_free(curve);
-			EC_POINT_free(pub);
-
 			throw new Exception("Can't set public key.");
 		}
 
-		EC_GROUP_free(curve);
-		EC_POINT_free(pub);
-
 		return eckey;
 	}
+
+    unittest {
+        import jwtd.test;
+        import std.exception : assertThrown;
+
+        assertThrown(getESKeypair(0, "key"));
+        assertThrown(getESKeypair(NID_secp256k1, "bogus_key"));
+        assertThrown(getESKeypair(NID_secp256k1, null));
+        assertThrown(getESKeypair(NID_secp256k1, private256));
+    }
 
 	EC_KEY* getESPrivateKey(uint curve_type, string key) {
 		EC_GROUP* curve;
@@ -86,75 +82,79 @@ version(UseOpenSSL) {
 
 		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
 			throw new Exception("Unsupported curve.");
+		scope(exit) EC_GROUP_free(curve);
 
 		bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 		if(bpo is null) {
-			EC_GROUP_free(curve);
 			throw new Exception("Can't load the key.");
 		}
+		scope(exit) BIO_free(bpo);
 
 		pktmp = PEM_read_bio_PrivateKey(bpo, null, null, null);
 		if(pktmp is null) {
-			EC_GROUP_free(curve);
-			BIO_free(bpo);
-
 			throw new Exception("Can't load the evp_pkey.");
 		}
-
-		BIO_free(bpo);
+		scope(exit) EVP_PKEY_free(pktmp);
 
 		EC_KEY * eckey;
 	 	eckey = EVP_PKEY_get1_EC_KEY(pktmp);
-		EVP_PKEY_free(pktmp);
-
 		if(eckey is null) {
-			EC_GROUP_free(curve);
-
 			throw new Exception("Can't convert evp_pkey to EC_KEY.");
 		}
 
+		scope(failure) EC_KEY_free(eckey);
 		if(1 != EC_KEY_set_group(eckey, curve)) {
-			EC_GROUP_free(curve);
-
 			throw new Exception("Can't associate group with the key.");
 		}
 
-		EC_GROUP_free(curve);
-
 		return eckey;
 	}
+
+    unittest {
+        import std.exception : assertThrown;
+        assertThrown(getESPrivateKey(0, "key"));
+        assertThrown(getESPrivateKey(NID_secp256k1, "bogus_key"));
+        assertThrown(getESPrivateKey(NID_secp256k1, null));
+    }
 
 	EC_KEY* getESPublicKey(uint curve_type, string key) {
 		EC_GROUP* curve;
 
 		if(null == (curve = EC_GROUP_new_by_curve_name(curve_type)))
 			throw new Exception("Unsupported curve.");
+		scope(exit) EC_GROUP_free(curve);
 
-		EC_KEY* eckey = EC_KEY_new();
+		EC_KEY* eckey;
 
 		BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 		if(bpo is null) {
-			EC_GROUP_free(curve);
 			throw new Exception("Can't load the key.");
 		}
+		scope(exit) BIO_free(bpo);
 
 		eckey = PEM_read_bio_EC_PUBKEY(bpo, null, null, null);
+		scope(failure) EC_KEY_free(eckey);
 
 		if(1 != EC_KEY_set_group(eckey, curve)) {
-			BIO_free(bpo);
-			EC_GROUP_free(curve);
-
 			throw new Exception("Can't associate group with the key.");
 		}
-
-		BIO_free(bpo);
-		EC_GROUP_free(curve);
 
 		if(0 == EC_KEY_check_key(eckey))
 			throw new Exception("Public key is not valid.");
 
 		return eckey;
 	}
+
+    unittest {
+        import jwtd.test;
+        import std.exception : assertThrown;
+
+        assertThrown(getESPublicKey(0, "key"));
+
+        auto eckey = getESPublicKey(NID_secp256k1, es256_public);
+        EC_KEY_free(eckey);
+        assertThrown(getESPublicKey(NID_secp256k1, null));
+    }
 
 	string sign(string msg, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 		ubyte[] sign;
@@ -163,42 +163,52 @@ version(UseOpenSSL) {
 			sign = new ubyte[signLen];
 
 			HMAC_CTX ctx;
+			scope(exit) HMAC_CTX_cleanup(&ctx);
 			HMAC_CTX_init(&ctx);
-			HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null);
-			HMAC_Update(&ctx, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length);
-			HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen);
-			HMAC_CTX_cleanup(&ctx);
+			if(0 == HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null)) {
+				throw new Exception("Can't initialize HMAC context.");
+			}
+			if(0 == HMAC_Update(&ctx, cast(const(ubyte)*)msg.ptr, cast(ulong)msg.length)) {
+				throw new Exception("Can't update HMAC.");
+			}
+			if(0 == HMAC_Final(&ctx, cast(ubyte*)sign.ptr, &signLen)) {
+				throw new Exception("Can't finalize HMAC.");
+			}
 		}
 
 		void sign_rs(ubyte* hash, int type, uint len, uint signLen) {
 			sign = new ubyte[len];
 
 			RSA* rsa_private = RSA_new();
+			scope(exit) RSA_free(rsa_private);
+
 			BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 			if(bpo is null)
 				throw new Exception("Can't load the key.");
-			PEM_read_bio_RSAPrivateKey(bpo, &rsa_private, null, null);
-			BIO_free(bpo);
-			if(rsa_private is null)
+			scope(exit) BIO_free(bpo);
+
+			RSA* rsa = PEM_read_bio_RSAPrivateKey(bpo, &rsa_private, null, null);
+			if(rsa is null) {
 				throw new Exception("Can't create RSA key.");
-			RSA_sign(type, hash, signLen, sign.ptr, &signLen, rsa_private);
-			RSA_free(rsa_private);
+			}
+			if(0 == RSA_sign(type, hash, signLen, sign.ptr, &signLen, rsa_private)) {
+				throw new Exception("Can't sign RSA message digest.");
+			}
 		}
 
 		void sign_es(uint curve_type, ubyte* hash, int hashLen) {
 			EC_KEY* eckey = getESPrivateKey(curve_type, key);
+			scope(exit) EC_KEY_free(eckey);
+
 			ECDSA_SIG* sig = ECDSA_do_sign(hash, hashLen, eckey);
 			if(sig is null) {
-				EC_KEY_free(eckey);
-
 				throw new Exception("Digest sign failed.");
 			}
+			scope(exit) ECDSA_SIG_free(sig);
 
 			sign = new ubyte[ECDSA_size(eckey)];
 			ubyte* c = sign.ptr;
 			if(!i2d_ECDSA_SIG(sig, &c)) {
-				ECDSA_SIG_free(sig);
-				EC_KEY_free(eckey);
 				throw new Exception("Convert sign to DER format failed.");
 			}
 		}
@@ -263,34 +273,41 @@ version(UseOpenSSL) {
 		return cast(string)sign;
 	}
 
+
 	bool verifySignature(string signature, string signing_input, string key, JWTAlgorithm algo = JWTAlgorithm.HS256) {
 
 		bool verify_rs(ubyte* hash, int type, uint len, uint signLen) {
 			RSA* rsa_public = RSA_new();
+			scope(exit) RSA_free(rsa_public);
+
 			BIO* bpo = BIO_new_mem_buf(cast(char*)key.ptr, -1);
 			if(bpo is null)
 				throw new Exception("Can't load key to the BIO.");
-			PEM_read_bio_RSA_PUBKEY(bpo, &rsa_public, null, null);
-			BIO_free(bpo);
-			if(rsa_public is null)
+			scope(exit) BIO_free(bpo);
+
+			RSA* rsa = PEM_read_bio_RSA_PUBKEY(bpo, &rsa_public, null, null);
+			if(rsa is null) {
 				throw new Exception("Can't create RSA key.");
+			}
+
 			ubyte[] sign = cast(ubyte[])signature;
 			int ret = RSA_verify(type, hash, signLen, sign.ptr, len, rsa_public);
-			RSA_free(rsa_public);
 			return ret == 1;
 		}
 
 		bool verify_es(uint curve_type, ubyte* hash, int hashLen ) {
 			EC_KEY* eckey = getESPublicKey(curve_type, key);
+			scope(exit) EC_KEY_free(eckey);
+
 			ubyte* c = cast(ubyte*)signature.ptr;
 			ECDSA_SIG* sig = null;
-
 			sig = d2i_ECDSA_SIG(&sig, cast(const (ubyte)**)&c, cast(int) key.length);
+			if (sig is null) {
+				throw new Exception("Can't decode ECDSA signature.");
+			}
+			scope(exit) ECDSA_SIG_free(sig);
+
 			int ret =  ECDSA_do_verify(hash, hashLen, sig, eckey);
-
-			ECDSA_SIG_free(sig);
-			EC_KEY_free(eckey);
-
 			return ret == 1;
 		}
 
@@ -339,4 +356,12 @@ version(UseOpenSSL) {
 				throw new VerifyException("Wrong algorithm.");
 		}
 	}
+}
+
+unittest {
+    version (UseOpenSSL) {
+        import std.exception : assertThrown;
+        assertThrown!SignException(sign("message", "key", cast(JWTAlgorithm)"bogus_algo"));
+        assertThrown!VerifyException(verifySignature("signature", "signing_input", "key", cast(JWTAlgorithm)"bogus_algo"));
+    }
 }

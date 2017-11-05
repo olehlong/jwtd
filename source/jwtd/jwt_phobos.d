@@ -66,4 +66,23 @@ version (UsePhobos) {
 				throw new VerifyException("Wrong algorithm.");
 		}
 	}
+
+    unittest {
+        import std.exception : assertThrown;
+
+        auto unsupportedAlgos = [
+            JWTAlgorithm.RS256,
+            JWTAlgorithm.RS384,
+            JWTAlgorithm.RS512,
+            JWTAlgorithm.ES256,
+            JWTAlgorithm.ES384,
+            JWTAlgorithm.ES512,
+            cast(JWTAlgorithm)"bogus_algo" ];
+
+        foreach (algo; unsupportedAlgos) {
+            assertThrown(sign("message", "key", algo));
+            assertThrown(verifySignature("signature", "input", "key", algo));
+        }
+    }
 }
+
