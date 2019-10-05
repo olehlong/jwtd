@@ -10,6 +10,10 @@ version(UseOpenSSL) {
 
 	import jwtd.jwt : JWTAlgorithm, SignException, VerifyException;
 
+	version(OpenSSL11) {
+		extern(C) nothrow void HMAC_CTX_reset(HMAC_CTX * ctx);
+	}
+
 	EC_KEY* getESKeypair(uint curve_type, string key) {
 		EC_GROUP* curve;
 		EVP_PKEY* pktmp;
@@ -163,8 +167,14 @@ version(UseOpenSSL) {
 			sign = new ubyte[signLen];
 
 			HMAC_CTX ctx;
-			scope(exit) HMAC_CTX_cleanup(&ctx);
-			HMAC_CTX_init(&ctx);
+			version(OpenSSL11) {
+				scope(exit) HMAC_CTX_reset(&ctx);
+				HMAC_CTX_reset(&ctx);
+			}
+			else {
+				scope(exit) HMAC_CTX_cleanup(&ctx);
+				HMAC_CTX_init(&ctx);
+			}
 			if(0 == HMAC_Init_ex(&ctx, key.ptr, cast(int)key.length, evp, null)) {
 				throw new Exception("Can't initialize HMAC context.");
 			}

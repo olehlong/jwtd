@@ -18,6 +18,14 @@
 			"versions": ["UseOpenSSL"]
 		},
 		{
+			"name": "openssl-1.1",
+			"targetType": "library",
+			"dependencies" : {
+				"openssl": "~>1.1.4+1.0.1g"
+			},
+			"versions": ["UseOpenSSL", "OpenSSL11"]
+		},
+		{
 			"name": "botan",
 			"targetType": "library",
 			"dependencies" : {
