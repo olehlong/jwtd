@@ -62,7 +62,7 @@ string encode(in ubyte[] payload, string key, JWTAlgorithm algo = JWTAlgorithm.H
 	import std.functional : memoize;
 
 	auto getEncodedHeader(JWTAlgorithm algo, JSONValue fields) {
-		if(fields.type == JSON_TYPE.NULL)
+		if(fields.type == JSONType.null_)
 			fields = (JSONValue[string]).init;
 		fields.object["alg"] = cast(string)algo;
 		fields.object["typ"] = "JWT";
@@ -84,7 +84,7 @@ unittest {
 
 	// Code coverage for when header_fields is NULL type
 	auto header_fields = JSONValue();
-	assert(header_fields.type == JSON_TYPE.NULL);
+	assert(header_fields.type == JSONType.null_);
     auto payload = JSONValue([ "a" : "b" ]);
 	encode(payload, public256, JWTAlgorithm.HS256, header_fields);
 }
